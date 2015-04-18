@@ -47,7 +47,10 @@ QUnit.module( ".parseDate( value, options )", {
 		});
 		Globalize.locale( "en" );
 	},
-	teardown: util.resetCldrContent
+	teardown: function() {
+		Globalize.cache = {};
+		util.resetCldrContent();
+	}
 });
 
 function assertParseDate( assert, input, options, output, globalize ) {

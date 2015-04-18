@@ -1,7 +1,9 @@
 define([
 	"cldr",
 	"make-plural",
-	"./core",
+	"./common/cache-get",
+	"./common/cache-set",
+	"./common/runtime-bind",
 	"./common/validate/cldr",
 	"./common/validate/default-locale",
 	"./common/validate/parameter-presence",
@@ -9,12 +11,13 @@ define([
 	"./common/validate/parameter-type/number",
 	"./common/validate/parameter-type/plain-object",
 	"./common/validate/parameter-type/plural-type",
+	"./core",
 
 	"cldr/event",
 	"cldr/supplemental"
-], function( Cldr, MakePlural, Globalize, validateCldr, validateDefaultLocale,
+], function( Cldr, MakePlural, cacheGet, cacheSet, runtimeBind, validateCldr, validateDefaultLocale,
 	validateParameterPresence, validateParameterType, validateParameterTypeNumber,
-	validateParameterTypePlainObject, validateParameterTypePluralType ) {
+	validateParameterTypePlainObject, validateParameterTypePluralType, Globalize ) {
 
 /**
  * .plural( value )
@@ -45,17 +48,23 @@ Globalize.prototype.plural = function( value, options ) {
  */
 Globalize.pluralGenerator =
 Globalize.prototype.pluralGenerator = function( options ) {
-	var cldr, isOrdinal, plural, type;
+	var args, cldr, isOrdinal, plural, returnFn, type;
 
 	validateParameterTypePlainObject( options, "options" );
 
 	options = options || {};
-	type = options.type || "cardinal";
 	cldr = this.cldr;
+
+	args = [].slice.call( arguments, 0 );
+	type = options.type || "cardinal";
 
 	validateParameterTypePluralType( options.type, "options.type" );
 
 	validateDefaultLocale( cldr );
+
+	if ( returnFn = cacheGet( "pluralGenerator", args, cldr ) ) {
+		return returnFn;
+	}
 
 	isOrdinal = type === "ordinal";
 
@@ -71,12 +80,20 @@ Globalize.prototype.pluralGenerator = function( options ) {
 		"cardinals": !isOrdinal
 	});
 
-	return function( value ) {
+	returnFn = function pluralGenerator( value ) {
 		validateParameterPresence( value, "value" );
 		validateParameterTypeNumber( value, "value" );
 
 		return plural( value );
 	};
+
+	cacheSet( args, cldr, returnFn );
+
+	runtimeBind( args, cldr, {
+		plural: plural
+	}, returnFn );
+
+	return returnFn;
 };
 
 return Globalize;

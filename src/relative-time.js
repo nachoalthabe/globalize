@@ -1,5 +1,8 @@
 define([
 	"./core",
+	"./common/cache-get",
+	"./common/cache-set",
+	"./common/runtime-bind",
 	"./common/validate/cldr",
 	"./common/validate/default-locale",
 	"./common/validate/parameter-presence",
@@ -11,9 +14,9 @@ define([
 	"./number",
 	"./plural",
 	"cldr/event"
-], function( Globalize, validateCldr, validateDefaultLocale, validateParameterPresence,
-	validateParameterTypeNumber, validateParameterTypeString, relativeTimeFormat,
-	relativeTimeProperties ) {
+], function( Globalize, cacheGet, cacheSet, runtimeBind, validateCldr, validateDefaultLocale,
+	validateParameterPresence, validateParameterTypeNumber, validateParameterTypeString,
+	relativeTimeFormat, relativeTimeProperties ) {
 
 /**
  * .formatRelativeTime( value, unit [, options] )
@@ -28,7 +31,6 @@ define([
  */
 Globalize.formatRelativeTime =
 Globalize.prototype.formatRelativeTime = function( value, unit, options ) {
-
 	validateParameterPresence( value, "value" );
 	validateParameterTypeNumber( value, "value" );
 
@@ -48,7 +50,7 @@ Globalize.prototype.formatRelativeTime = function( value, unit, options ) {
  */
 Globalize.relativeTimeFormatter =
 Globalize.prototype.relativeTimeFormatter = function( unit, options ) {
-	var cldr, numberFormatter, pluralGenerator, properties;
+	var args, cldr, numberFormatter, pluralGenerator, properties, returnFn;
 
 	validateParameterPresence( unit, "unit" );
 	validateParameterTypeString( unit, "unit" );
@@ -56,7 +58,13 @@ Globalize.prototype.relativeTimeFormatter = function( unit, options ) {
 	cldr = this.cldr;
 	options = options || {};
 
+	args = [].slice.call( arguments, 0 );
+
 	validateDefaultLocale( cldr );
+
+	if ( returnFn = cacheGet( "relativeTimeFormatter", args, cldr ) ) {
+		return returnFn;
+	}
 
 	cldr.on( "get", validateCldr );
 	properties = relativeTimeProperties( unit, cldr, options );
@@ -65,12 +73,22 @@ Globalize.prototype.relativeTimeFormatter = function( unit, options ) {
 	numberFormatter = this.numberFormatter( options );
 	pluralGenerator = this.pluralGenerator();
 
-	return function( value ) {
+	returnFn = function relativeTimeFormatter( value ) {
 		validateParameterPresence( value, "value" );
 		validateParameterTypeNumber( value, "value" );
 
 		return relativeTimeFormat( value, numberFormatter, pluralGenerator, properties );
 	};
+
+	cacheSet( args, cldr, returnFn );
+
+	runtimeBind( args, cldr, {
+		numberFormatter: numberFormatter,
+		pluralGenerator: pluralGenerator,
+		properties: properties
+	}, returnFn );
+
+	return returnFn;
 };
 
 return Globalize;

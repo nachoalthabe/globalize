@@ -1,5 +1,8 @@
 define([
 	"cldr",
+	"./common/cache-get",
+	"./common/cache-set",
+	"./common/runtime-bind",
 	"./common/validate/cldr",
 	"./common/validate/default-locale",
 	"./common/validate/parameter-presence",
@@ -18,10 +21,10 @@ define([
 	"cldr/event",
 	"cldr/supplemental",
 	"./number"
-], function( Cldr, validateCldr, validateDefaultLocale, validateParameterPresence,
-	validateParameterTypeDate, validateParameterTypePlainObject, validateParameterTypeString,
-	Globalize, dateExpandPattern, dateFormat, dateFormatProperties, dateParse, dateParseProperties,
-	dateTokenizer, dateTokenizerProperties ) {
+], function( Cldr, cacheGet, cacheSet, runtimeBind, validateCldr, validateDefaultLocale,
+	validateParameterPresence, validateParameterTypeDate, validateParameterTypePlainObject,
+	validateParameterTypeString, Globalize, dateExpandPattern, dateFormat, dateFormatProperties,
+	dateParse, dateParseProperties, dateTokenizer, dateTokenizerProperties ) {
 
 function validateRequiredCldr( path, value ) {
 	validateCldr( path, value, {
@@ -33,6 +36,8 @@ function validateRequiredCldr( path, value ) {
 		]
 	});
 }
+
+var slice = [].slice;
 
 /**
  * .dateFormatter( options )
@@ -51,14 +56,20 @@ function validateRequiredCldr( path, value ) {
  */
 Globalize.dateFormatter =
 Globalize.prototype.dateFormatter = function( options ) {
-	var cldr, numberFormatters, pad, pattern, properties;
+	var args, cldr, numberFormatters, pad, pattern, properties, returnFn;
 
 	validateParameterTypePlainObject( options, "options" );
 
 	cldr = this.cldr;
 	options = options || { skeleton: "yMd" };
 
+	args = slice.call( arguments, 0 );
+
 	validateDefaultLocale( cldr );
+
+	if ( returnFn = cacheGet( "dateFormatter", args, cldr ) ) {
+		return returnFn;
+	}
 
 	cldr.on( "get", validateRequiredCldr );
 	pattern = dateExpandPattern( options, cldr );
@@ -74,11 +85,20 @@ Globalize.prototype.dateFormatter = function( options ) {
 		});
 	}
 
-	return function( value ) {
+	returnFn = function dateFormatter( value ) {
 		validateParameterPresence( value, "value" );
 		validateParameterTypeDate( value, "value" );
 		return dateFormat( value, numberFormatters, properties );
 	};
+
+	cacheSet( args, cldr, returnFn );
+
+	runtimeBind( args, cldr, {
+		numberFormatters: numberFormatters,
+		properties: properties
+	}, returnFn );
+
+	return returnFn;
 };
 
 /**
@@ -91,14 +111,20 @@ Globalize.prototype.dateFormatter = function( options ) {
  */
 Globalize.dateParser =
 Globalize.prototype.dateParser = function( options ) {
-	var cldr, numberParser, parseProperties, pattern, tokenizerProperties;
+	var args, cldr, numberParser, parseProperties, pattern, tokenizerProperties, returnFn;
 
 	validateParameterTypePlainObject( options, "options" );
 
 	cldr = this.cldr;
 	options = options || { skeleton: "yMd" };
 
+	args = slice.call( arguments, 0 );
+
 	validateDefaultLocale( cldr );
+
+	if ( returnFn = cacheGet( "dateParser", args, cldr ) ) {
+		return returnFn;
+	}
 
 	cldr.on( "get", validateRequiredCldr );
 	pattern = dateExpandPattern( options, cldr );
@@ -108,7 +134,7 @@ Globalize.prototype.dateParser = function( options ) {
 
 	numberParser = this.numberParser({ raw: "0" });
 
-	return function( value ) {
+	returnFn = function dateParser( value ) {
 		var tokens;
 
 		validateParameterPresence( value, "value" );
@@ -117,6 +143,16 @@ Globalize.prototype.dateParser = function( options ) {
 		tokens = dateTokenizer( value, numberParser, tokenizerProperties );
 		return dateParse( value, tokens, parseProperties ) || null;
 	};
+
+	cacheSet( args, cldr, returnFn );
+
+	runtimeBind( args, cldr, {
+		numberParser: numberParser,
+		parseProperties: parseProperties,
+		tokenizerProperties: tokenizerProperties
+	}, returnFn );
+
+	return returnFn;
 };
 
 /**

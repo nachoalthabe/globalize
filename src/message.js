@@ -1,8 +1,11 @@
 define([
 	"cldr",
 	"messageformat",
-	"./core",
+	"./common/cache-get",
+	"./common/cache-set",
 	"./common/create-error",
+	"./common/create-error/plural-module-presence",
+	"./common/runtime-bind",
 	"./common/validate/default-locale",
 	"./common/validate/message-bundle",
 	"./common/validate/message-presence",
@@ -11,27 +14,18 @@ define([
 	"./common/validate/parameter-type",
 	"./common/validate/parameter-type/message-variables",
 	"./common/validate/parameter-type/plain-object",
-	"./common/validate/plural-module-presence",
+	"./core",
+	"./message/formatter-runtime-bind",
 	"./util/always-array",
 
 	"cldr/event"
-], function( Cldr, MessageFormat, Globalize, createError, validateDefaultLocale,
-	validateMessageBundle, validateMessagePresence, validateMessageType, validateParameterPresence,
-	validateParameterType, validateParameterTypeMessageVariables, validateParameterTypePlainObject,
-	validatePluralModulePresence, alwaysArray ) {
+], function( Cldr, MessageFormat, cacheGet, cacheSet, createError, createErrorPluralModulePresence,
+	runtimeBind, validateDefaultLocale, validateMessageBundle, validateMessagePresence,
+	validateMessageType, validateParameterPresence, validateParameterType,
+	validateParameterTypeMessageVariables, validateParameterTypePlainObject, Globalize,
+	messageFormatterRuntimeBind, alwaysArray ) {
 
 var slice = [].slice;
-
-function MessageFormatInit( globalize, cldr ) {
-	var plural;
-	return new MessageFormat( cldr.locale, function( value ) {
-		if ( !plural ) {
-			validatePluralModulePresence();
-			plural = globalize.pluralGenerator();
-		}
-		return plural( value );
-	});
-}
 
 /**
  * .loadMessages( json )
@@ -69,7 +63,8 @@ Globalize.loadMessages = function( json ) {
  */
 Globalize.messageFormatter =
 Globalize.prototype.messageFormatter = function( path ) {
-	var cldr, formatter, message;
+	var cldr, formatter, isPluralModulePresent, message, pluralGenerator, returnFn, runtimeArgs,
+		args = slice.call( arguments, 0 );
 
 	validateParameterPresence( path, "path" );
 	validateParameterType( path, "path", typeof path === "string" || Array.isArray( path ),
@@ -81,6 +76,10 @@ Globalize.prototype.messageFormatter = function( path ) {
 	validateDefaultLocale( cldr );
 	validateMessageBundle( cldr );
 
+	if ( returnFn = cacheGet( "messageFormatter", args, cldr ) ) {
+		return returnFn;
+	}
+
 	message = cldr.get( [ "globalize-messages/{bundle}" ].concat( path ) );
 	validateMessagePresence( path, message );
 
@@ -90,15 +89,34 @@ Globalize.prototype.messageFormatter = function( path ) {
 	}
 	validateMessageType( path, message );
 
-	formatter = MessageFormatInit( this, cldr ).compile( message );
+	isPluralModulePresent = this.plural !== undefined;
+	pluralGenerator = isPluralModulePresent ?
+		this.pluralGenerator() :
+		createErrorPluralModulePresence;
 
-	return function( variables ) {
+	formatter = new MessageFormat( cldr.locale, pluralGenerator ).compile( message );
+
+	returnFn = function messageFormatter( variables ) {
 		if ( typeof variables === "number" || typeof variables === "string" ) {
-			variables = slice.call( arguments, 0 );
+			variables = [].slice.call( arguments, 0 );
 		}
 		validateParameterTypeMessageVariables( variables, "variables" );
 		return formatter( variables );
 	};
+
+	cacheSet( args, cldr, returnFn );
+
+	runtimeArgs = {
+		formatter: messageFormatterRuntimeBind( cldr, formatter )
+	};
+
+	if ( isPluralModulePresent ) {
+		runtimeArgs.pluralGenerator = pluralGenerator;
+	}
+
+	runtimeBind( args, cldr, runtimeArgs, returnFn );
+
+	return returnFn;
 };
 
 /**

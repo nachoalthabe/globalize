@@ -73,7 +73,10 @@ QUnit.module( ".messageFormatter( path )", {
 			}
 		});
 	},
-	teardown: util.resetCldrContent
+	teardown: function() {
+		Globalize.cache = {};
+		util.resetCldrContent();
+	}
 });
 
 QUnit.test( "should pass test's prerequisites", function( assert ) {

@@ -37,11 +37,14 @@
 	}
 }(this, function( Cldr, Globalize ) {
 
-var createError = Globalize._createError,
+var cacheGet = Globalize._cacheGet,
+	cacheSet = Globalize._cacheSet,
+	createError = Globalize._createError,
 	createErrorUnsupportedFeature = Globalize._createErrorUnsupportedFeature,
 	formatMessage = Globalize._formatMessage,
 	numberSymbol = Globalize._numberSymbol,
 	regexpEscape = Globalize._regexpEscape,
+	runtimeBind = Globalize._runtimeBind,
 	stringPad = Globalize._stringPad,
 	validateCldr = Globalize._validateCldr,
 	validateDefaultLocale = Globalize._validateDefaultLocale,

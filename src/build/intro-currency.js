@@ -34,11 +34,13 @@
 }(this, function( Cldr, Globalize ) {
 
 var alwaysArray = Globalize._alwaysArray,
+	cacheGet = Globalize._cacheGet,
+	cacheSet = Globalize._cacheSet,
 	formatMessage = Globalize._formatMessage,
 	numberNumberingSystem = Globalize._numberNumberingSystem,
 	numberPattern = Globalize._numberPattern,
+	runtimeBind = Globalize._runtimeBind,
 	stringPad = Globalize._stringPad,
-	validate = Globalize._validate,
 	validateCldr = Globalize._validateCldr,
 	validateDefaultLocale = Globalize._validateDefaultLocale,
 	validateParameterPresence = Globalize._validateParameterPresence,

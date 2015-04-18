@@ -1,6 +1,9 @@
 define([
 	"./core",
+	"./common/cache-get",
+	"./common/cache-set",
 	"./common/create-error/unsupported-feature",
+	"./common/runtime-bind",
 	"./common/validate/cldr",
 	"./common/validate/default-locale",
 	"./common/validate/parameter-presence",
@@ -19,11 +22,13 @@ define([
 
 	"cldr/event",
 	"cldr/supplemental"
-], function( Globalize, createErrorUnsupportedFeature, validateCldr, validateDefaultLocale,
-	validateParameterPresence, validateParameterRange, validateParameterTypeNumber,
-	validateParameterTypePlainObject, validateParameterTypeString, numberFormat,
-	numberFormatProperties, numberNumberingSystem, numberParse, numberParseProperties,
+], function( Globalize, cacheGet, cacheSet, createErrorUnsupportedFeature, runtimeBind,
+	validateCldr, validateDefaultLocale, validateParameterPresence, validateParameterRange,
+	validateParameterTypeNumber, validateParameterTypePlainObject, validateParameterTypeString,
+	numberFormat, numberFormatProperties, numberNumberingSystem, numberParse, numberParseProperties,
 	numberPattern, numberSymbol, stringPad ) {
+
+var slice = [].slice;
 
 /**
  * .numberFormatter( [options] )
@@ -37,15 +42,21 @@ define([
  */
 Globalize.numberFormatter =
 Globalize.prototype.numberFormatter = function( options ) {
-	var cldr, maximumFractionDigits, maximumSignificantDigits, minimumFractionDigits,
-		minimumIntegerDigits, minimumSignificantDigits, pattern, properties;
+	var args, cldr, maximumFractionDigits, maximumSignificantDigits, minimumFractionDigits,
+		minimumIntegerDigits, minimumSignificantDigits, pattern, properties, returnFn;
 
 	validateParameterTypePlainObject( options, "options" );
 
 	options = options || {};
 	cldr = this.cldr;
 
+	args = slice.call( arguments, 0 );
+
 	validateDefaultLocale( cldr );
+
+	if ( returnFn = cacheGet( "numberFormatter", args, cldr ) ) {
+		return returnFn;
+	}
 
 	cldr.on( "get", validateCldr );
 
@@ -84,11 +95,19 @@ Globalize.prototype.numberFormatter = function( options ) {
 			minimumFractionDigits, 20 );
 	}
 
-	return function( value ) {
+	returnFn = function numberFormatter( value ) {
 		validateParameterPresence( value, "value" );
 		validateParameterTypeNumber( value, "value" );
 		return numberFormat( value, properties );
 	};
+
+	cacheSet( args, cldr, returnFn );
+
+	runtimeBind( args, cldr, {
+		properties: properties
+	}, returnFn );
+
+	return returnFn;
 };
 
 /**
@@ -101,14 +120,20 @@ Globalize.prototype.numberFormatter = function( options ) {
  */
 Globalize.numberParser =
 Globalize.prototype.numberParser = function( options ) {
-	var cldr, pattern, properties;
+	var args, cldr, pattern, properties, returnFn;
 
 	validateParameterTypePlainObject( options, "options" );
 
 	options = options || {};
 	cldr = this.cldr;
 
+	args = slice.call( arguments, 0 );
+
 	validateDefaultLocale( cldr );
+
+	if ( returnFn = cacheGet( "numberParser", args, cldr ) ) {
+		return returnFn;
+	}
 
 	cldr.on( "get", validateCldr );
 
@@ -122,11 +147,19 @@ Globalize.prototype.numberParser = function( options ) {
 
 	cldr.off( "get", validateCldr );
 
-	return function( value ) {
+	returnFn = function numberParser( value ) {
 		validateParameterPresence( value, "value" );
 		validateParameterTypeString( value, "value" );
 		return numberParse( value, properties );
 	};
+
+	cacheSet( args, cldr, returnFn );
+
+	runtimeBind( args, cldr, {
+		properties: properties
+	}, returnFn );
+
+	return returnFn;
 };
 
 /**
