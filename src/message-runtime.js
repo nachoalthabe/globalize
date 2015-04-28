@@ -9,7 +9,7 @@ Globalize._validateParameterTypeMessageVariables = validateParameterTypeMessageV
 
 Globalize.messageFormatter =
 Globalize.prototype.messageFormatter = function( /* path */ ) {
-	return Globalize[ runtimeKey( "messageFormatter", this.locale, arguments ) ];
+	return Globalize[ runtimeKey( "messageFormatter", this._locale, arguments ) ];
 };
 
 Globalize.formatMessage =

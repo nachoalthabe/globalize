@@ -18,16 +18,16 @@ function Globalize( locale ) {
 	validateParameterPresence( locale, "locale" );
 	validateParameterTypeString( locale, "locale" );
 
-	this.locale = locale;
+	this._locale = locale;
 }
 
 Globalize.locale = function( locale ) {
 	validateParameterTypeString( locale, "locale" );
 
 	if ( arguments.length ) {
-		this.locale = locale;
+		this._locale = locale;
 	}
-	return this.locale;
+	return this._locale;
 };
 
 Globalize._createError = createError;

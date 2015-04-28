@@ -20,13 +20,13 @@ Globalize._validateParameterTypeDate = validateParameterTypeDate;
 Globalize.dateFormatter =
 Globalize.prototype.dateFormatter = function( options ) {
 	options = options || { skeleton: "yMd" };
-	return Globalize[ runtimeKey( "dateFormatter", this.locale, arguments ) ];
+	return Globalize[ runtimeKey( "dateFormatter", this._locale, arguments ) ];
 };
 
 Globalize.dateParser =
 Globalize.prototype.dateParser = function( options ) {
 	options = options || { skeleton: "yMd" };
-	return Globalize[ runtimeKey( "dateParser", this.locale, arguments ) ];
+	return Globalize[ runtimeKey( "dateParser", this._locale, arguments ) ];
 };
 
 Globalize.formatDate =

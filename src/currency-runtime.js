@@ -14,7 +14,7 @@ Globalize._currencyNameFormat = currencyNameFormat;
 Globalize.currencyFormatter =
 Globalize.prototype.currencyFormatter = function( currency, options ) {
 	options = options || {};
-	return Globalize[ runtimeKey( "currencyFormatter", this.locale, arguments ) ];
+	return Globalize[ runtimeKey( "currencyFormatter", this._locale, arguments ) ];
 };
 
 Globalize.formatCurrency =
