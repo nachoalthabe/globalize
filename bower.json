@@ -8,6 +8,10 @@
     "CONTRIBUTING.md",
     "bower.json"
   ],
+  "main": [
+    "dist/globalize.js",
+    "dist/globalize/number.js"
+  ],
   "dependencies": {
     "cldrjs": "0.4.1",
     "cldr-data": ">=25"
